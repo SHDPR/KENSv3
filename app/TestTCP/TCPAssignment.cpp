@@ -3,6 +3,7 @@
  *
  *  Created on: 2014. 11. 20.
  *      Author: Keunhong Lee
+ 			  20150310 Sangmin Park
  */
 
 
@@ -105,57 +106,59 @@ void TCPAssignment::syscall_socket(UUID syscallUUID, int pid, int domain, int ty
 }
 
 void TCPAssignment::syscall_close(UUID syscallUUID, int pid, int socket){
-	std::list<struct sock_comp>::iterator it;
-
+	// Search for the socket
+	std::list<struct connection>::iterator it;
 	for(it = this->sock_list.begin(); it != this->sock_list.end(); it++){
 		if((*it).socket == socket){
 			break;
 		}
 	}
-
+	// Remove from socket list
 	if(it != this->sock_list.end()){
 		this->sock_list.erase(it);
 	}
-
 	this->removeFileDescriptor(pid, socket);
 	this->returnSystemCall(syscallUUID, 0);
 }
 
 void TCPAssignment::syscall_bind(UUID syscallUUID, int pid, int socket, sockaddr *address, socklen_t address_len){
-	sock_comp new_sock;
-	struct sockaddr_in* sock_info = (struct sockaddr_in *)address;
-	new_sock.socket = socket;
-	new_sock.addr = sock_info->sin_addr.s_addr;
-	new_sock.port = sock_info->sin_port;
-
-	std::list<struct sock_comp>::iterator it;
+	// Define new connection
+	connection sock0;
+	struct sockaddr_in* addr = (struct sockaddr_in *)address;
+	sock0.socket = socket;
+	sock0.address = addr->sin_addr.s_addr;
+	sock0.port = addr->sin_port;
 	// Overlap Check
+	std::list<struct connection>::iterator it;
 	for(it = this->sock_list.begin(); it != sock_list.end(); it++){
-		bool overlap = ((*it).socket == new_sock.socket) ||
-									 (((*it).addr == 0 || new_sock.addr == 0) && ((*it).port == new_sock.port)) ||
-									 (((*it).addr == new_sock.addr) && ((*it).port == new_sock.port));
+		// 1. Is socket number same?
+		// 2. Is either one of address zero? && Is port same?
+		// 3. Are address and port both same?
+		bool overlap = ((*it).socket == sock0.socket) ||
+									 (((*it).address == 0 || sock0.address == 0) && ((*it).port == sock0.port)) ||
+									 (((*it).address == sock0.address) && ((*it).port == sock0.port));
+		// Return -1 if overlap
 		if(overlap){
 			this->returnSystemCall(syscallUUID, -1);
 		}
 	}
-
-	this->sock_list.push_back(new_sock);
+	// Insert on the end if no overlap
+	this->sock_list.push_back(sock0);
 	this->returnSystemCall(syscallUUID, 0);
-
 }
 
 void TCPAssignment::syscall_getsockname(UUID syscallUUID, int pid, int socket, sockaddr *address, socklen_t *address_len){
-	struct sockaddr_in *sock_info = (struct sockaddr_in *)address;
-	std::list<struct sock_comp>::iterator it;
-
+	struct sockaddr_in *addr = (struct sockaddr_in *)address;
+	std::list<struct connection>::iterator it;
+	// Search for the socket
 	for(it = this->sock_list.begin(); it != this->sock_list.end(); it++){
-		if((*iter).socket == socket){
+		if((*it).socket == socket){
 			break;
 		}
 	}
-	sock_info->sin_family = AF_INET;
-	sock_info->sin_addr.s_addr = (*it).addr;
-	sock_info->sin_port = (*it).port;
+	addr->sin_family = AF_INET;
+	addr->sin_addr.s_addr = (*it).address;
+	addr->sin_port = (*it).port;
 	this->returnSystemCall(syscallUUID, 0);
 }
 

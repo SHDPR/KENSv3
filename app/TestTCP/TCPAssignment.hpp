@@ -3,6 +3,7 @@
  *
  *  Created on: 2014. 11. 20.
  *      Author: Keunhong Lee
+ 				20150310 Sangmin Park
  */
 
 #ifndef E_TCPASSIGNMENT_HPP_
@@ -21,9 +22,11 @@
 
 namespace E
 {
-// Socket Component Structure Added
-struct sock_comp{
-	int socket; long addr; short port;
+// Socket connection structure defined
+struct connection{
+  int socket;
+	long address;
+	short port;
 };
 
 class TCPAssignment : public HostModule, public NetworkModule, public SystemCallInterface, private NetworkLog, private TimerModule
@@ -34,7 +37,8 @@ private:
 	virtual void syscall_close(UUID syscallUUID, int pid, int socket);
 	virtual void syscall_bind(UUID syscallUUID, int pid, int socket, sockaddr *address, socklen_t address_len);
 	virtual void syscall_getsockname(UUID syscallUUID, int pid, int socket, sockaddr *address, socklen_t *address_len);
-
+  // Sock_comp structure list for socket management
+  std::list<struct connection> sock_list;
 	virtual void timerCallback(void* payload) final;
 
 public:
@@ -42,10 +46,6 @@ public:
 	virtual void initialize();
 	virtual void finalize();
 	virtual ~TCPAssignment();
-
-	// Sock_comp Structure List for management
-	std::list<struct sock_comp> sock_list;
-
 
 protected:
 	virtual void systemCallback(UUID syscallUUID, int pid, const SystemCallParameter& param) final;
